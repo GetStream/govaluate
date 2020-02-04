@@ -2,4 +2,6 @@ language: go
 go:
   - 1.13.x
 
-script: ./test.sh
+script:
+  - go mod tidy && git diff --no-patch --exit-code
+  - go test -race -bench=. -benchmem
