@@ -13,34 +13,32 @@ type expressionOutputStream struct {
 	transactions []string
 }
 
-func (this *expressionOutputStream) add(transaction string) {
-	this.transactions = append(this.transactions, transaction)
+func (s *expressionOutputStream) add(transaction string) {
+	s.transactions = append(s.transactions, transaction)
 }
 
-func (this *expressionOutputStream) rollback() string {
+func (s *expressionOutputStream) rollback() string {
 
-	index := len(this.transactions) - 1
-	ret := this.transactions[index]
+	index := len(s.transactions) - 1
+	ret := s.transactions[index]
 
-	this.transactions = this.transactions[:index]
+	s.transactions = s.transactions[:index]
 	return ret
 }
 
-func (this *expressionOutputStream) createString(delimiter string) string {
+func (s *expressionOutputStream) createString(delimiter string) string {
 
 	var retBuffer bytes.Buffer
 	var transaction string
 
-	penultimate := len(this.transactions) - 1
+	penultimate := len(s.transactions) - 1
 
 	for i := 0; i < penultimate; i++ {
-
-		transaction = this.transactions[i]
-
+		transaction = s.transactions[i]
 		retBuffer.WriteString(transaction)
 		retBuffer.WriteString(delimiter)
 	}
-	retBuffer.WriteString(this.transactions[penultimate])
+	retBuffer.WriteString(s.transactions[penultimate])
 
 	return retBuffer.String()
 }

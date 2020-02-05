@@ -196,7 +196,6 @@ func planStages(tokens []ExpressionToken) (*evaluationStage, error) {
 }
 
 func planTokens(stream *tokenStream) (*evaluationStage, error) {
-
 	if !stream.hasNext() {
 		return nil, nil
 	}
@@ -213,8 +212,7 @@ func planPrecedenceLevel(
 	typeErrorFormat string,
 	validSymbols map[string]OperatorSymbol,
 	validKinds []TokenKind,
-	rightPrecedent precedent,
-	leftPrecedent precedent) (*evaluationStage, error) {
+	rightPrecedent, leftPrecedent precedent) (*evaluationStage, error) {
 
 	var token ExpressionToken
 	var symbol OperatorSymbol
@@ -224,7 +222,6 @@ func planPrecedenceLevel(
 	var keyFound bool
 
 	if leftPrecedent != nil {
-
 		leftStage, err = leftPrecedent(stream)
 		if err != nil {
 			return nil, err
@@ -232,11 +229,9 @@ func planPrecedenceLevel(
 	}
 
 	for stream.hasNext() {
-
 		token = stream.next()
 
 		if len(validKinds) > 0 {
-
 			keyFound = false
 			for _, kind := range validKinds {
 				if kind == token.Kind {
@@ -271,8 +266,8 @@ func planPrecedenceLevel(
 
 		checks = findTypeChecks(symbol)
 
+		//nolint: staticcheck
 		return &evaluationStage{
-
 			symbol:     symbol,
 			leftStage:  leftStage,
 			rightStage: rightStage,
@@ -385,7 +380,6 @@ func planValue(stream *tokenStream) (*evaluationStage, error) {
 	switch token.Kind {
 
 	case CLAUSE:
-
 		ret, err = planTokens(stream)
 		if err != nil {
 			return nil, err
@@ -406,7 +400,6 @@ func planValue(stream *tokenStream) (*evaluationStage, error) {
 		return ret, nil
 
 	case CLAUSE_CLOSE:
-
 		// when functions have empty params, this will be hit. In this case, we don't have any evaluation stage to do,
 		// so we just return nil so that the stage planner continues on its way.
 		stream.rewind()
@@ -415,13 +408,7 @@ func planValue(stream *tokenStream) (*evaluationStage, error) {
 	case VARIABLE:
 		operator = makeParameterStage(token.Value.(string))
 
-	case NUMERIC:
-		fallthrough
-	case STRING:
-		fallthrough
-	case PATTERN:
-		fallthrough
-	case BOOLEAN:
+	case NUMERIC, STRING, PATTERN, BOOLEAN:
 		symbol = LITERAL
 		operator = makeLiteralStage(token.Value)
 	case TIME:
@@ -458,28 +445,17 @@ type typeChecks struct {
 	Maps a given [symbol] to a set of typechecks to be used during runtime.
 */
 func findTypeChecks(symbol OperatorSymbol) typeChecks {
-
 	switch symbol {
-	case GT:
-		fallthrough
-	case LT:
-		fallthrough
-	case GTE:
-		fallthrough
-	case LTE:
+	case GT, LT, GTE, LTE:
 		return typeChecks{
 			combined: comparatorTypeCheck,
 		}
-	case REQ:
-		fallthrough
-	case NREQ:
+	case REQ, NREQ:
 		return typeChecks{
 			left:  isString,
 			right: isRegexOrString,
 		}
-	case AND:
-		fallthrough
-	case OR:
+	case AND, OR:
 		return typeChecks{
 			left:  isBool,
 			right: isBool,
@@ -488,15 +464,11 @@ func findTypeChecks(symbol OperatorSymbol) typeChecks {
 		return typeChecks{
 			right: isArray,
 		}
-	case BITWISE_LSHIFT:
-		fallthrough
-	case BITWISE_RSHIFT:
-		fallthrough
-	case BITWISE_OR:
-		fallthrough
-	case BITWISE_AND:
-		fallthrough
-	case BITWISE_XOR:
+	case BITWISE_LSHIFT,
+		BITWISE_RSHIFT,
+		BITWISE_OR,
+		BITWISE_AND,
+		BITWISE_XOR:
 		return typeChecks{
 			left:  isFloat64,
 			right: isFloat64,
@@ -505,15 +477,7 @@ func findTypeChecks(symbol OperatorSymbol) typeChecks {
 		return typeChecks{
 			combined: additionTypeCheck,
 		}
-	case MINUS:
-		fallthrough
-	case MULTIPLY:
-		fallthrough
-	case DIVIDE:
-		fallthrough
-	case MODULUS:
-		fallthrough
-	case EXPONENT:
+	case MINUS, MULTIPLY, DIVIDE, MODULUS, EXPONENT:
 		return typeChecks{
 			left:  isFloat64,
 			right: isFloat64,
@@ -534,16 +498,6 @@ func findTypeChecks(symbol OperatorSymbol) typeChecks {
 		return typeChecks{
 			left: isBool,
 		}
-
-	// unchecked cases
-	case EQ:
-		fallthrough
-	case NEQ:
-		return typeChecks{}
-	case TERNARY_FALSE:
-		fallthrough
-	case COALESCE:
-		fallthrough
 	default:
 		return typeChecks{}
 	}
@@ -602,25 +556,19 @@ func reorderStages(rootStage *evaluationStage) {
 */
 func mirrorStageSubtree(stages []*evaluationStage) {
 
-	var rootStage, inverseStage, carryStage, frontStage *evaluationStage
-
+	var rootStage, inverseStage, frontStage *evaluationStage
 	stagesLength := len(stages)
 
 	// reverse all right/left
 	for _, frontStage = range stages {
-
-		carryStage = frontStage.rightStage
-		frontStage.rightStage = frontStage.leftStage
-		frontStage.leftStage = carryStage
+		frontStage.rightStage, frontStage.leftStage = frontStage.leftStage, frontStage.rightStage
 	}
 
 	// end left swaps with root right
 	rootStage = stages[0]
 	frontStage = stages[stagesLength-1]
 
-	carryStage = frontStage.leftStage
-	frontStage.leftStage = rootStage.rightStage
-	rootStage.rightStage = carryStage
+	frontStage.leftStage, rootStage.rightStage = rootStage.rightStage, frontStage.leftStage
 
 	// for all non-root non-end stages, right is swapped with inverse stage right in list
 	for i := 0; i < (stagesLength-2)/2+1; i++ {
@@ -628,9 +576,7 @@ func mirrorStageSubtree(stages []*evaluationStage) {
 		frontStage = stages[i+1]
 		inverseStage = stages[stagesLength-i-1]
 
-		carryStage = frontStage.rightStage
-		frontStage.rightStage = inverseStage.rightStage
-		inverseStage.rightStage = carryStage
+		frontStage.rightStage, inverseStage.rightStage = inverseStage.rightStage, frontStage.rightStage
 	}
 
 	// swap all other information with inverse stages
@@ -678,9 +624,7 @@ func elideStage(root *evaluationStage) *evaluationStage {
 
 	// don't elide some operators
 	switch root.symbol {
-	case SEPARATE:
-		fallthrough
-	case IN:
+	case SEPARATE, IN:
 		return root
 	}
 

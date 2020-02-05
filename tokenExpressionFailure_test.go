@@ -6,9 +6,8 @@ import (
 	"testing"
 )
 
-const (
-	EXPERR_NIL_VALUE string = "cannot have a nil value"
-)
+//nolint: golint
+const EXPERR_NIL_VALUE string = "cannot have a nil value"
 
 /*
 	Contains a single test case for the EvaluableExpression.NewEvaluableExpressionFromTokens() method.
@@ -191,14 +190,13 @@ func runExpressionFromTokenTests(cases []ExpressionTokenSyntaxTest, expectFail b
 			test.Logf("Got error: '%s'", err)
 			test.Fail()
 			continue
-		} else {
-			if expectFail {
+		}
 
-				test.Logf("Test '%s' failed", testCase.Name)
-				test.Logf("Expected error, found none\n")
-				test.Fail()
-				continue
-			}
+		if expectFail {
+			test.Logf("Test '%s' failed", testCase.Name)
+			test.Logf("Expected error, found none\n")
+			test.Fail()
+			continue
 		}
 	}
 }

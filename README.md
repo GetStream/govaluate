@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/GetStream/govaluate.svg?branch=master)](https://travis-ci.org/GetStream/govaluate)
 [![Godoc](https://img.shields.io/badge/godoc-reference-5272B4.svg)](https://godoc.org/github.com/GetStream/govaluate)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Knetic/govaluate)](https://goreportcard.com/report/github.com/GetStream/govaluate)
+[![Go Report Card](https://goreportcard.com/badge/github.com/GetStream/govaluate)](https://goreportcard.com/report/github.com/GetStream/govaluate)
 [![codecov](https://codecov.io/gh/GetStream/Govaluate/branch/master/graph/badge.svg?token=O1I6tWXNRY)](https://codecov.io/gh/GetStream/Govaluate)
 
 Provides support for evaluating arbitrary C-like arithmetic/string expressions.

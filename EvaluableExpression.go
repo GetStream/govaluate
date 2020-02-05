@@ -8,6 +8,7 @@ import (
 const isoDateFormat string = "2006-01-02T15:04:05.999999999Z0700"
 const shortCircuitHolder int = -1
 
+//nolint: golint
 var DUMMY_PARAMETERS = MapParameters(map[string]interface{}{})
 
 /*
@@ -128,13 +129,11 @@ func NewEvaluableExpressionWithFunctions(expression string, functions map[string
 /*
 	Same as `Eval`, but automatically wraps a map of parameters into a `govalute.Parameters` structure.
 */
-func (this EvaluableExpression) Evaluate(parameters map[string]interface{}) (interface{}, error) {
-
+func (expr EvaluableExpression) Evaluate(parameters map[string]interface{}) (interface{}, error) {
 	if parameters == nil {
-		return this.Eval(nil)
+		return expr.Eval(nil)
 	}
-
-	return this.Eval(MapParameters(parameters))
+	return expr.Eval(MapParameters(parameters))
 }
 
 /*
@@ -148,9 +147,8 @@ func (this EvaluableExpression) Evaluate(parameters map[string]interface{}) (int
 	e.g., if the expression is "1 + 1", this will return 2.0.
 	e.g., if the expression is "foo + 1" and parameters contains "foo" = 2, this will return 3.0
 */
-func (this EvaluableExpression) Eval(parameters Parameters) (interface{}, error) {
-
-	if this.evaluationStages == nil {
+func (expr EvaluableExpression) Eval(parameters Parameters) (interface{}, error) {
+	if expr.evaluationStages == nil {
 		return nil, nil
 	}
 
@@ -160,16 +158,16 @@ func (this EvaluableExpression) Eval(parameters Parameters) (interface{}, error)
 		parameters = DUMMY_PARAMETERS
 	}
 
-	return this.evaluateStage(this.evaluationStages, parameters)
+	return expr.evaluateStage(expr.evaluationStages, parameters)
 }
 
-func (this EvaluableExpression) evaluateStage(stage *evaluationStage, parameters Parameters) (interface{}, error) {
-
+//nolint: gocognit
+func (expr EvaluableExpression) evaluateStage(stage *evaluationStage, parameters Parameters) (interface{}, error) {
 	var left, right interface{}
 	var err error
 
 	if stage.leftStage != nil {
-		left, err = this.evaluateStage(stage.leftStage, parameters)
+		left, err = expr.evaluateStage(stage.leftStage, parameters)
 		if err != nil {
 			return nil, err
 		}
@@ -202,13 +200,13 @@ func (this EvaluableExpression) evaluateStage(stage *evaluationStage, parameters
 	}
 
 	if right != shortCircuitHolder && stage.rightStage != nil {
-		right, err = this.evaluateStage(stage.rightStage, parameters)
+		right, err = expr.evaluateStage(stage.rightStage, parameters)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if this.ChecksTypes {
+	if expr.ChecksTypes {
 		if stage.typeCheck == nil {
 
 			err = typeCheck(stage.leftTypeCheck, left, stage.symbol, stage.typeErrorFormat)
@@ -220,12 +218,11 @@ func (this EvaluableExpression) evaluateStage(stage *evaluationStage, parameters
 			if err != nil {
 				return nil, err
 			}
-		} else {
-			// special case where the type check needs to know both sides to determine if the operator can handle it
-			if !stage.typeCheck(left, right) {
-				errorMsg := fmt.Sprintf(stage.typeErrorFormat, left, stage.symbol.String())
-				return nil, errors.New(errorMsg)
-			}
+		} else if !stage.typeCheck(left, right) {
+			// special case where the type check needs to know
+			// both sides to determine if the operator can handle it
+			errorMsg := fmt.Sprintf(stage.typeErrorFormat, left, stage.symbol.String())
+			return nil, errors.New(errorMsg)
 		}
 	}
 
@@ -233,41 +230,32 @@ func (this EvaluableExpression) evaluateStage(stage *evaluationStage, parameters
 }
 
 func typeCheck(check stageTypeCheck, value interface{}, symbol OperatorSymbol, format string) error {
-
-	if check == nil {
+	if check == nil || check(value) {
 		return nil
 	}
-
-	if check(value) {
-		return nil
-	}
-
-	errorMsg := fmt.Sprintf(format, value, symbol.String())
-	return errors.New(errorMsg)
+	return fmt.Errorf(format, value, symbol.String())
 }
 
 /*
 	Returns an array representing the ExpressionTokens that make up this expression.
 */
-func (this EvaluableExpression) Tokens() []ExpressionToken {
-
-	return this.tokens
+func (expr EvaluableExpression) Tokens() []ExpressionToken {
+	return expr.tokens
 }
 
 /*
 	Returns the original expression used to create this EvaluableExpression.
 */
-func (this EvaluableExpression) String() string {
-
-	return this.inputExpression
+func (expr EvaluableExpression) String() string {
+	return expr.inputExpression
 }
 
 /*
 	Returns an array representing the variables contained in this EvaluableExpression.
 */
-func (this EvaluableExpression) Vars() []string {
+func (expr EvaluableExpression) Vars() []string {
 	var varlist []string
-	for _, val := range this.Tokens() {
+	for _, val := range expr.Tokens() {
 		if val.Kind == VARIABLE {
 			varlist = append(varlist, val.Value.(string))
 		}

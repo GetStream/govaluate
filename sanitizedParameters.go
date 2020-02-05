@@ -16,28 +16,27 @@ func (p sanitizedParameters) Get(key string) (interface{}, error) {
 }
 
 func castToFloat64(value interface{}) interface{} {
-	switch value.(type) {
+	switch v := value.(type) {
 	case uint8:
-		return float64(value.(uint8))
+		return float64(v)
 	case uint16:
-		return float64(value.(uint16))
+		return float64(v)
 	case uint32:
-		return float64(value.(uint32))
+		return float64(v)
 	case uint64:
-		return float64(value.(uint64))
+		return float64(v)
 	case int8:
-		return float64(value.(int8))
+		return float64(v)
 	case int16:
-		return float64(value.(int16))
+		return float64(v)
 	case int32:
-		return float64(value.(int32))
+		return float64(v)
 	case int64:
-		return float64(value.(int64))
+		return float64(v)
 	case int:
-		return float64(value.(int))
+		return float64(v)
 	case float32:
-		return float64(value.(float32))
+		return float64(v)
 	}
-
 	return value
 }
