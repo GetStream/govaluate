@@ -25,13 +25,10 @@ func parseTokens(expression string, functions map[string]ExpressionFunction) ([]
 
 	for stream.canRead() {
 
-		token, err, found = readToken(stream, state, functions)
-
+		token, found, err = readToken(stream, state, functions)
 		if err != nil {
 			return ret, err
-		}
-
-		if !found {
+		} else if !found {
 			break
 		}
 
@@ -44,15 +41,14 @@ func parseTokens(expression string, functions map[string]ExpressionFunction) ([]
 		ret = append(ret, token)
 	}
 
-	err = checkBalance(ret)
-	if err != nil {
+	if err := checkBalance(ret); err != nil {
 		return nil, err
 	}
-
 	return ret, nil
 }
 
-func readToken(stream *lexerStream, state lexerState, functions map[string]ExpressionFunction) (ExpressionToken, error, bool) {
+//nolint: gocognit
+func readToken(stream *lexerStream, state lexerState, functions map[string]ExpressionFunction) (ExpressionToken, bool, error) {
 
 	var function ExpressionFunction
 	var ret ExpressionToken
@@ -79,7 +75,7 @@ func readToken(stream *lexerStream, state lexerState, functions map[string]Expre
 			continue
 		}
 
-		kind = UNKNOWN
+		kind = UNKNOWN //nolint: ineffassign
 
 		// numeric constant
 		if isNumeric(character) {
@@ -88,12 +84,12 @@ func readToken(stream *lexerStream, state lexerState, functions map[string]Expre
 				character = stream.readCharacter()
 
 				if stream.canRead() && character == 'x' {
-					tokenString, _ = readUntilFalse(stream, false, true, true, isHexDigit)
+					tokenString, _ = readUntilFalse(stream, false, true, isHexDigit)
 					tokenValueInt, err := strconv.ParseUint(tokenString, 16, 64)
 
 					if err != nil {
-						errorMsg := fmt.Sprintf("Unable to parse hex value '%v' to uint64\n", tokenString)
-						return ExpressionToken{}, errors.New(errorMsg), false
+						return ExpressionToken{}, false,
+							fmt.Errorf("Unable to parse hex value '%v' to uint64", tokenString)
 					}
 
 					kind = NUMERIC
@@ -108,8 +104,8 @@ func readToken(stream *lexerStream, state lexerState, functions map[string]Expre
 			tokenValue, err = strconv.ParseFloat(tokenString, 64)
 
 			if err != nil {
-				errorMsg := fmt.Sprintf("Unable to parse numeric value '%v' to float64\n", tokenString)
-				return ExpressionToken{}, errors.New(errorMsg), false
+				return ExpressionToken{}, false,
+					fmt.Errorf("Unable to parse numeric value '%v' to float64", tokenString)
 			}
 			kind = NUMERIC
 			break
@@ -126,11 +122,11 @@ func readToken(stream *lexerStream, state lexerState, functions map[string]Expre
 		// escaped variable
 		if character == '[' {
 
-			tokenValue, completed = readUntilFalse(stream, true, false, true, isNotClosingBracket)
+			tokenValue, completed = readUntilFalse(stream, true, false, isNotClosingBracket)
 			kind = VARIABLE
 
 			if !completed {
-				return ExpressionToken{}, errors.New("Unclosed parameter bracket"), false
+				return ExpressionToken{}, false, errors.New("Unclosed parameter bracket")
 			}
 
 			// above method normally rewinds us to the closing bracket, which we want to skip.
@@ -143,36 +139,26 @@ func readToken(stream *lexerStream, state lexerState, functions map[string]Expre
 
 			tokenString = readTokenUntilFalse(stream, isVariableName)
 
-			tokenValue = tokenString
-			kind = VARIABLE
+			kind, tokenValue = VARIABLE, tokenString
 
 			// boolean?
 			if tokenValue == "true" {
-
-				kind = BOOLEAN
-				tokenValue = true
-			} else {
-
-				if tokenValue == "false" {
-
-					kind = BOOLEAN
-					tokenValue = false
-				}
+				kind, tokenValue = BOOLEAN, true
+			} else if tokenValue == "false" {
+				kind, tokenValue = BOOLEAN, false
 			}
 
 			// textual operator?
 			if tokenValue == "in" || tokenValue == "IN" {
 
 				// force lower case for consistency
-				tokenValue = "in"
-				kind = COMPARATOR
+				kind, tokenValue = COMPARATOR, "in"
 			}
 
 			// function?
 			function, found = functions[tokenString]
 			if found {
-				kind = FUNCTION
-				tokenValue = function
+				kind, tokenValue = FUNCTION, function
 			}
 
 			// accessor?
@@ -181,8 +167,7 @@ func readToken(stream *lexerStream, state lexerState, functions map[string]Expre
 
 				// check that it doesn't end with a hanging period
 				if tokenString[len(tokenString)-1] == '.' {
-					errorMsg := fmt.Sprintf("Hanging accessor on token '%s'", tokenString)
-					return ExpressionToken{}, errors.New(errorMsg), false
+					return ExpressionToken{}, false, fmt.Errorf("Hanging accessor on token '%s'", tokenString)
 				}
 
 				kind = ACCESSOR
@@ -195,8 +180,8 @@ func readToken(stream *lexerStream, state lexerState, functions map[string]Expre
 					firstCharacter := getFirstRune(splits[i])
 
 					if unicode.ToUpper(firstCharacter) != firstCharacter {
-						errorMsg := fmt.Sprintf("Unable to access unexported field '%s' in token '%s'", splits[i], tokenString)
-						return ExpressionToken{}, errors.New(errorMsg), false
+						return ExpressionToken{}, false,
+							fmt.Errorf("Unable to access unexported field '%s' in token '%s'", splits[i], tokenString)
 					}
 				}
 			}
@@ -204,10 +189,10 @@ func readToken(stream *lexerStream, state lexerState, functions map[string]Expre
 		}
 
 		if !isNotQuote(character) {
-			tokenValue, completed = readUntilFalse(stream, true, false, true, isNotQuote)
+			tokenValue, completed = readUntilFalse(stream, true, false, isNotQuote)
 
 			if !completed {
-				return ExpressionToken{}, errors.New("Unclosed string literal"), false
+				return ExpressionToken{}, false, errors.New("Unclosed string literal")
 			}
 
 			// advance the stream one position, since reading until false assumes the terminator is a real token
@@ -278,14 +263,13 @@ func readToken(stream *lexerStream, state lexerState, functions map[string]Expre
 			break
 		}
 
-		errorMessage := fmt.Sprintf("Invalid token: '%s'", tokenString)
-		return ret, errors.New(errorMessage), false
+		return ret, false, fmt.Errorf("Invalid token: '%s'", tokenString)
 	}
 
 	ret.Kind = kind
 	ret.Value = tokenValue
 
-	return ret, nil, (kind != UNKNOWN)
+	return ret, (kind != UNKNOWN), nil
 }
 
 func readTokenUntilFalse(stream *lexerStream, condition func(rune) bool) string {
@@ -293,7 +277,7 @@ func readTokenUntilFalse(stream *lexerStream, condition func(rune) bool) string 
 	var ret string
 
 	stream.rewind(1)
-	ret, _ = readUntilFalse(stream, false, true, true, condition)
+	ret, _ = readUntilFalse(stream, false, true, condition)
 	return ret
 }
 
@@ -301,7 +285,7 @@ func readTokenUntilFalse(stream *lexerStream, condition func(rune) bool) string 
 	Returns the string that was read until the given [condition] was false, or whitespace was broken.
 	Returns false if the stream ended before whitespace was broken or condition was met.
 */
-func readUntilFalse(stream *lexerStream, includeWhitespace bool, breakWhitespace bool, allowEscaping bool, condition func(rune) bool) (string, bool) {
+func readUntilFalse(stream *lexerStream, includeWhitespace, breakWhitespace bool, condition func(rune) bool) (string, bool) {
 
 	var tokenBuffer bytes.Buffer
 	var character rune
@@ -314,7 +298,7 @@ func readUntilFalse(stream *lexerStream, includeWhitespace bool, breakWhitespace
 		character = stream.readCharacter()
 
 		// Use backslashes to escape anything
-		if allowEscaping && character == '\\' {
+		if character == '\\' {
 
 			character = stream.readCharacter()
 			tokenBuffer.WriteString(string(character))
@@ -388,13 +372,10 @@ func optimizeTokens(tokens []ExpressionToken) ([]ExpressionToken, error) {
 	Checks the balance of tokens which have multiple parts, such as parenthesis.
 */
 func checkBalance(tokens []ExpressionToken) error {
-
-	var stream *tokenStream
 	var token ExpressionToken
 	var parens int
 
-	stream = newTokenStream(tokens)
-
+	stream := newTokenStream(tokens)
 	for stream.hasNext() {
 
 		token = stream.next()
@@ -414,14 +395,8 @@ func checkBalance(tokens []ExpressionToken) error {
 	return nil
 }
 
-func isDigit(character rune) bool {
-	return unicode.IsDigit(character)
-}
-
 func isHexDigit(character rune) bool {
-
 	character = unicode.ToLower(character)
-
 	return unicode.IsDigit(character) ||
 		character == 'a' ||
 		character == 'b' ||
@@ -432,12 +407,10 @@ func isHexDigit(character rune) bool {
 }
 
 func isNumeric(character rune) bool {
-
 	return unicode.IsDigit(character) || character == '.'
 }
 
 func isNotQuote(character rune) bool {
-
 	return character != '\'' && character != '"'
 }
 
@@ -493,7 +466,6 @@ func tryParseTime(candidate string) (time.Time, bool) {
 	}
 
 	for _, format := range timeFormats {
-
 		ret, found = tryParseExactTime(candidate, format)
 		if found {
 			return ret, true
@@ -503,12 +475,8 @@ func tryParseTime(candidate string) (time.Time, bool) {
 	return time.Now(), false
 }
 
-func tryParseExactTime(candidate string, format string) (time.Time, bool) {
-
-	var ret time.Time
-	var err error
-
-	ret, err = time.ParseInLocation(format, candidate, time.Local)
+func tryParseExactTime(candidate, format string) (time.Time, bool) {
+	ret, err := time.ParseInLocation(format, candidate, time.Local)
 	if err != nil {
 		return time.Now(), false
 	}
@@ -517,10 +485,8 @@ func tryParseExactTime(candidate string, format string) (time.Time, bool) {
 }
 
 func getFirstRune(candidate string) rune {
-
 	for _, character := range candidate {
 		return character
 	}
-
 	return 0
 }

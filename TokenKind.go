@@ -5,6 +5,7 @@ package govaluate
 */
 type TokenKind int
 
+//nolint: golint
 const (
 	UNKNOWN TokenKind = iota
 

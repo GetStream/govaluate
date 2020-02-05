@@ -6,6 +6,7 @@ package govaluate
 */
 type OperatorSymbol int
 
+//nolint: golint
 const (
 	VALUE OperatorSymbol = iota
 	LITERAL
@@ -68,71 +69,32 @@ const (
 )
 
 func findOperatorPrecedenceForSymbol(symbol OperatorSymbol) operatorPrecedence {
-
 	switch symbol {
 	case NOOP:
 		return noopPrecedence
 	case VALUE:
 		return valuePrecedence
-	case EQ:
-		fallthrough
-	case NEQ:
-		fallthrough
-	case GT:
-		fallthrough
-	case LT:
-		fallthrough
-	case GTE:
-		fallthrough
-	case LTE:
-		fallthrough
-	case REQ:
-		fallthrough
-	case NREQ:
-		fallthrough
-	case IN:
+	case EQ, NEQ, GT, LT, GTE, LTE, REQ, NREQ, IN:
 		return comparatorPrecedence
 	case AND:
 		return logicalAndPrecedence
 	case OR:
 		return logicalOrPrecedence
-	case BITWISE_AND:
-		fallthrough
-	case BITWISE_OR:
-		fallthrough
-	case BITWISE_XOR:
+	case BITWISE_AND, BITWISE_OR, BITWISE_XOR:
 		return bitwisePrecedence
-	case BITWISE_LSHIFT:
-		fallthrough
-	case BITWISE_RSHIFT:
+	case BITWISE_LSHIFT, BITWISE_RSHIFT:
 		return bitwiseShiftPrecedence
-	case PLUS:
-		fallthrough
-	case MINUS:
+	case PLUS, MINUS:
 		return additivePrecedence
-	case MULTIPLY:
-		fallthrough
-	case DIVIDE:
-		fallthrough
-	case MODULUS:
+	case MULTIPLY, DIVIDE, MODULUS:
 		return multiplicativePrecedence
 	case EXPONENT:
 		return exponentialPrecedence
-	case BITWISE_NOT:
-		fallthrough
-	case NEGATE:
-		fallthrough
-	case INVERT:
+	case BITWISE_NOT, NEGATE, INVERT:
 		return prefixPrecedence
-	case COALESCE:
-		fallthrough
-	case TERNARY_TRUE:
-		fallthrough
-	case TERNARY_FALSE:
+	case COALESCE, TERNARY_TRUE, TERNARY_FALSE:
 		return ternaryPrecedence
-	case ACCESS:
-		fallthrough
-	case FUNCTIONAL:
+	case ACCESS, FUNCTIONAL:
 		return functionalPrecedence
 	case SEPARATE:
 		return separatePrecedence
@@ -224,14 +186,12 @@ var separatorSymbols = map[string]OperatorSymbol{
 	Returns true if this operator is contained by the given array of candidate symbols.
 	False otherwise.
 */
-func (this OperatorSymbol) IsModifierType(candidate []OperatorSymbol) bool {
-
+func (s OperatorSymbol) IsModifierType(candidate []OperatorSymbol) bool {
 	for _, symbolType := range candidate {
-		if this == symbolType {
+		if s == symbolType {
 			return true
 		}
 	}
-
 	return false
 }
 
@@ -241,9 +201,8 @@ func (this OperatorSymbol) IsModifierType(candidate []OperatorSymbol) bool {
 	OperatorSymbol to string, but that would require more memory, and another field somewhere.
 	Adding operators is rare enough that we just stringify it here instead.
 */
-func (this OperatorSymbol) String() string {
-
-	switch this {
+func (s OperatorSymbol) String() string {
+	switch s {
 	case NOOP:
 		return "NOOP"
 	case VALUE:

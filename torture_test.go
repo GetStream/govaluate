@@ -30,6 +30,7 @@ var (
 		"nil",
 		empty,
 		empty2,
+		empty3,
 		true,
 		false,
 		time.Now(),
@@ -151,7 +152,7 @@ func checkPanic(expression string, test *testing.T) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			test.Logf("Panic: \"%s\". Expression: \"%s\". Parameters: %+v\n", r, expression, parameters)
+			test.Logf("Panic: %q. Expression: %q. Parameters: %+v\n", r, expression, parameters)
 			panics++
 		}
 	}()
@@ -165,12 +166,10 @@ func checkPanic(expression string, test *testing.T) {
 	for _, v := range vars {
 		parameters[v] = getRandom(values)
 	}
-
-	eval.Evaluate(parameters)
+	_, _ = eval.Evaluate(parameters)
 }
 
 func getRandom(haystack []interface{}) interface{} {
-
 	i := rand.Intn(len(haystack))
 	return haystack[i]
 }

@@ -10,9 +10,7 @@ import (
 	"testing"
 )
 
-type DebugStruct struct {
-	x int
-}
+type DebugStruct struct{}
 
 /*
 	Represents a test for parsing failures
@@ -25,20 +23,22 @@ type EvaluationFailureTest struct {
 	Expected   string
 }
 
+//nolint: golint
 const (
-	INVALID_MODIFIER_TYPES   string = "cannot be used with the modifier"
-	INVALID_COMPARATOR_TYPES        = "cannot be used with the comparator"
-	INVALID_LOGICALOP_TYPES         = "cannot be used with the logical operator"
-	INVALID_TERNARY_TYPES           = "cannot be used with the ternary operator"
-	ABSENT_PARAMETER                = "No parameter"
-	INVALID_REGEX                   = "Unable to compile regexp pattern"
-	INVALID_PARAMETER_CALL          = "No method or field"
-	TOO_FEW_ARGS                    = "Too few arguments to parameter call"
-	TOO_MANY_ARGS                   = "Too many arguments to parameter call"
-	MISMATCHED_PARAMETERS           = "Argument type conversion failed"
+	INVALID_MODIFIER_TYPES   = "cannot be used with the modifier"
+	INVALID_COMPARATOR_TYPES = "cannot be used with the comparator"
+	INVALID_LOGICALOP_TYPES  = "cannot be used with the logical operator"
+	INVALID_TERNARY_TYPES    = "cannot be used with the ternary operator"
+	ABSENT_PARAMETER         = "No parameter"
+	INVALID_REGEX            = "Unable to compile regexp pattern"
+	INVALID_PARAMETER_CALL   = "No method or field"
+	TOO_FEW_ARGS             = "Too few arguments to parameter call"
+	TOO_MANY_ARGS            = "Too many arguments to parameter call"
+	MISMATCHED_PARAMETERS    = "Argument type conversion failed"
 )
 
 // preset parameter map of types that can be used in an evaluation failure test to check typing.
+//nolint: golint
 var EVALUATION_FAILURE_PARAMETERS = map[string]interface{}{
 	"number": 1,
 	"string": "foo",
@@ -87,14 +87,15 @@ func TestStructParameter(t *testing.T) {
 	}
 }
 
-func TestNilParameterUsage(test *testing.T) {
-
+func TestNilParameterUsage(t *testing.T) {
 	expression, err := NewEvaluableExpression("2 > 1")
-	_, err = expression.Evaluate(nil)
-
 	if err != nil {
-		test.Errorf("Expected no error from nil parameter evaluation, got %v\n", err)
-		return
+		t.Errorf("can't parse expr(2 > 1) %+v", err)
+	}
+
+	_, err = expression.Evaluate(nil)
+	if err != nil {
+		t.Errorf("Expected no error from nil parameter evaluation, got %v\n", err)
 	}
 }
 

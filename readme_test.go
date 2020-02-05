@@ -168,7 +168,7 @@ func TestStrlenFunction(test *testing.T) {
 	functions := map[string]ExpressionFunction{
 		"strlen": func(args ...interface{}) (interface{}, error) {
 			length := len(args[0].(string))
-			return (float64)(length), nil
+			return float64(length), nil
 		},
 	}
 

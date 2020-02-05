@@ -7,33 +7,23 @@ type lexerStream struct {
 }
 
 func newLexerStream(source string) *lexerStream {
-
-	var ret *lexerStream
-	var runes []rune
-
-	for _, character := range source {
-		runes = append(runes, character)
+	runes := []rune(source)
+	return &lexerStream{
+		source: runes,
+		length: len(runes),
 	}
-
-	ret = new(lexerStream)
-	ret.source = runes
-	ret.length = len(runes)
-	return ret
 }
 
-func (this *lexerStream) readCharacter() rune {
-
-	var character rune
-
-	character = this.source[this.position]
-	this.position += 1
-	return character
+func (s *lexerStream) readCharacter() rune {
+	c := s.source[s.position]
+	s.position++
+	return c
 }
 
-func (this *lexerStream) rewind(amount int) {
-	this.position -= amount
+func (s *lexerStream) rewind(amount int) {
+	s.position -= amount
 }
 
-func (this lexerStream) canRead() bool {
-	return this.position < this.length
+func (s lexerStream) canRead() bool {
+	return s.position < s.length
 }

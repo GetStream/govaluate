@@ -4,4 +4,5 @@ go:
 
 script:
   - go mod tidy && git diff --no-patch --exit-code
+  - ./run-lint.sh
   - go test -race -bench=. -benchmem

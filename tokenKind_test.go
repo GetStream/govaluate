@@ -9,10 +9,6 @@ import (
 	Gotta get that 95% code coverage yall. That's why tests like this get written; over-reliance on bad metrics.
 */
 func TestTokenKindStrings(test *testing.T) {
-
-	var kindStrings []string
-	var kindString string
-
 	kinds := []TokenKind{
 		UNKNOWN,
 		PREFIX,
@@ -30,18 +26,13 @@ func TestTokenKindStrings(test *testing.T) {
 		TERNARY,
 	}
 
+	kindStrings := make(map[string]struct{}, len(kinds))
 	for _, kind := range kinds {
-
-		kindString = kind.String()
-
-		for _, extantKind := range kindStrings {
-			if extantKind == kindString {
-				test.Logf("Token kind test found duplicate string for token kind %v ('%v')\n", kind, kindString)
-				test.Fail()
-				return
-			}
+		s := kind.String()
+		if _, ok := kindStrings[s]; ok {
+			test.Logf("Token kind test found duplicate string for token kind %v ('%v')\n", kind, s)
+			test.FailNow()
 		}
-
-		kindStrings = append(kindStrings, kindString)
+		kindStrings[s] = struct{}{}
 	}
 }
